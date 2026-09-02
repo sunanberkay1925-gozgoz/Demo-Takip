@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rainwater Demo Takip Paneli</title>
+<style>
+  :root{
+    --deep: #063a4d;
+    --deep2: #0a4f68;
+    --mid: #12839e;
+    --bright: #1fb6c9;
+    --foam: #e7f6f8;
+    --paper: #ffffff;
+    --line: #d3e9ed;
+    --text: #0d2b33;
+    --muted: #5c7d84;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(180deg, var(--deep) 0%, var(--deep2) 210px, var(--foam) 210px, var(--foam) 100%);
+    color: var(--text);
+    line-height: 1.5;
+    min-height:100vh;
+    padding-bottom: 60px;
+  }
+  header{
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 34px 24px 30px;
+    display:flex;
+    align-items:flex-start;
+    flex-wrap: wrap;
+    gap:16px;
+  }
+  .drop-mark{ width:40px;height:40px;flex:none; }
+  header .titles{ min-width: 0; }
+  header h1{
+    color:#fff;
+    font-size: 1.5rem;
+    line-height: 1.35;
+    font-weight: 650;
+    margin:0;
+    letter-spacing: 0.2px;
+  }
+  header p{
+    color: #bfe6ee;
+    line-height: 1.5;
+    margin: 6px 0 0;
+    font-size: 0.9rem;
+  }
+  main{
+    max-width: 1200px;
+    margin: -20px auto 0;
+    padding: 0 24px;
+    position: relative;
+  }
+  .panel{
+    background: var(--paper);
+    border-radius: 14px;
+    box-shadow: 0 12px 32px rgba(6,58,77,0.14);
+    overflow: hidden;
+    border: 1px solid var(--line);
+  }
+  .toolbar{
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .toolbar .count{ color: var(--muted); font-size: 0.88rem; white-space: nowrap; }
+  .toolbar .actions{ display:flex; gap: 10px; flex-wrap: wrap; }
+  button{ font-family: inherit; cursor:pointer; border:none; white-space: nowrap; }
+  .btn-add, .btn-export{
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    transition: background 0.15s ease;
+  }
+  .btn-add{ background: var(--mid); color:#fff; }
+  .btn-add:hover{ background: var(--deep2); }
+  .btn-export{ background: var(--foam); color: var(--deep); border: 1px solid var(--line); }
+  .btn-export:hover{ background: #d7f0f3; }
+
+  .grid-scroll{ overflow-x: auto; }
+  .demo-grid{ min-width: 1060px; }
+  .col-row{
+    display:grid;
+    grid-template-columns: 46px 138px 104px 1.05fr 1.15fr 0.95fr 0.95fr 128px 36px;
+    align-items:center;
+    column-gap: 6px;
+  }
+  .grid-header-row{
+    background: var(--foam);
+    color: var(--deep);
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 12px 14px;
+    line-height: 1.4;
+    border-bottom: 2px solid var(--line);
+  }
+  .grid-header-row span{ padding-right: 8px; white-space: nowrap; overflow:hidden; text-overflow: ellipsis; }
+
+  .day-group + .day-group{ border-top: 1px solid var(--line); }
+  .day-group.undated{ border-top: 1px dashed var(--line); background: #fbfefe; }
+
+  .day-header{
+    width: 100%;
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    padding: 13px 16px;
+    background: var(--paper);
+    text-align:left;
+    font-size: 0.92rem;
+    color: var(--deep);
+    transition: background 0.15s ease;
+  }
+  .day-header:hover{ background: var(--foam); }
+  .day-header .chevron{
+    display:inline-block;
+    width: 16px;
+    color: var(--mid);
+    font-size: 0.8rem;
+    transition: transform 0.15s ease;
+    flex: none;
+  }
+  .day-header.expanded .chevron{ transform: rotate(90deg); }
+  .day-header .day-label{
+    font-weight: 700;
+    line-height: 1.4;
+  }
+  .day-header .day-count{
+    margin-left: auto;
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-weight: 500;
+    white-space: nowrap;
+    padding-left: 12px;
+  }
+  .undated .day-header{ cursor: default; color: var(--muted); font-style: italic; }
+  .undated .day-header .day-count{ font-style: normal; }
+
+  .day-body{ padding: 6px 0 4px; }
+  .row-line{
+    padding: 8px 12px;
+    line-height: 1.4;
+    background: transparent;
+    transition: box-shadow 0.15s ease;
+  }
+  .row-line:hover{ box-shadow: inset 0 0 0 999px rgba(255,255,255,0.4); }
+
+  /* Dealer'a göre satır rengi - hafif, buzlu ton */
+  .dealer-mor{ background: rgba(147, 112, 219, 0.13); backdrop-filter: blur(2px) saturate(120%); }
+  .dealer-mint{ background: rgba(58, 196, 158, 0.14); backdrop-filter: blur(2px) saturate(120%); }
+  .dealer-turuncu{ background: rgba(255, 141, 66, 0.14); backdrop-filter: blur(2px) saturate(120%); }
+  .dealer-sari{ background: rgba(255, 199, 46, 0.17); backdrop-filter: blur(2px) saturate(120%); }
+
+  .sira-value{ display:block; text-align:center; font-weight: 700; color: var(--mid); }
+
+  .field-picker{
+    position: relative;
+    display:flex;
+    align-items:center;
+    gap: 3px;
+  }
+  .field-picker input[type="text"]{
+    flex: 1;
+    min-width: 0;
+  }
+  .picker-btn{
+    flex: none;
+    width: 26px;
+    height: 26px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: var(--foam);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font-size: 0.78rem;
+    color: var(--mid);
+    transition: background 0.15s ease;
+  }
+  .picker-btn:hover{ background: #d7f0f3; }
+  .native-hidden{
+    position:absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  select, input[type="date"], input[type="time"], input[type="text"]{
+    width: 100%;
+    font-family: inherit;
+    font-size: 0.86rem;
+    color: var(--text);
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 7px 8px;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  select{
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%23127f96'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 9px center;
+    padding-right: 24px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  select:focus, input:focus{
+    outline: none;
+    border-color: var(--mid);
+    box-shadow: 0 0 0 3px rgba(31,182,201,0.18);
+  }
+
+  .del-btn{
+    background: transparent;
+    color: #b23b4a;
+    width: 30px; height: 30px;
+    border-radius: 7px;
+    font-size: 1rem;
+    line-height: 1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition: background 0.15s ease;
+  }
+  .del-btn:hover{ background: #fbe7e9; }
+
+  .empty-state{ padding: 50px 20px; text-align:center; color: var(--muted); }
+  .empty-state .drop-mark{ margin: 0 auto 10px; opacity:0.5; }
+
+  footer{
+    max-width:1200px;
+    margin: 14px auto 0;
+    padding: 0 24px;
+    color: var(--muted);
+    font-size: 0.78rem;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 640px){
+    header{ padding: 26px 16px 22px; }
+    main{ padding: 0 12px; }
+    .panel{ border-radius: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <svg class="drop-mark" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+    <path d="M20 4C20 4 8 20 8 27a12 12 0 0 0 24 0C32 20 20 4 20 4z" fill="#1fb6c9"/>
+    <path d="M20 4C20 4 8 20 8 27a12 12 0 0 0 24 0C32 20 20 4 20 4z" fill="url(#g)" opacity="0.5"/>
+    <defs>
+      <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#eafcff"/>
+        <stop offset="1" stop-color="#0a4f68"/>
+      </linearGradient>
+    </defs>
+  </svg>
+  <div class="titles">
+    <h1>Rainwater Demo Takip Paneli</h1>
+    <p>Demo kayıtlarını satır satır ekleyip takip edin</p>
+  </div>
+</header>
+
+<main>
+  <div class="panel">
+    <div class="toolbar">
+      <span class="count" id="rowCount">0 kayıt</span>
+      <div class="actions">
+        <button class="btn-export" id="exportBtn">⬇ Excel'e Aktar</button>
+        <button class="btn-add" id="addRowBtn">+ Satır Ekle</button>
+      </div>
+    </div>
+    <div class="grid-scroll">
+      <div class="demo-grid" id="demoGrid">
+        <div class="col-row grid-header-row">
+          <span>Sıra</span><span>Tarih</span><span>Saat</span><span>Dealer</span><span>Demobank</span><span>Demo Türü</span><span>İlçe</span><span>Durum</span><span></span>
+        </div>
+        <div id="groupsWrap"></div>
+      </div>
+    </div>
+    <div class="empty-state" id="emptyState" style="display:none;">
+      <svg class="drop-mark" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+        <path d="M20 4C20 4 8 20 8 27a12 12 0 0 0 24 0C32 20 20 4 20 4z" fill="#12839e"/>
+      </svg>
+      Henüz kayıt yok. Başlamak için "Satır Ekle" düğmesine basın.
+    </div>
+  </div>
+  <footer>Kayıtlar bu tarayıcıda otomatik olarak saklanır. Yeni bir satır tüm alanları doldurulana kadar "Doldurulmamış kayıtlar" altında kalır; tamamlanınca ilgili güne otomatik taşınır. Tarih ve saat kutucuklarına yazarak veya 📅/🕐 düğmesiyle takvimden seçerek girebilirsiniz. Sıralama; önce tarihe, tarihler eşitse saate göre yapılır. Kayıt tarihinin üzerinden 1 hafta geçen günler otomatik olarak temizlenir.</footer>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+  const DEALERS = ["Hava Kaya", "Berkay Sunan", "Ahmet Doğan", "Alperen Kansız", "Seçim Bekleniyor"];
+  const DEMOBANK = ["Aynur Hanım", "Beyzanur Hanım", "Beyzanur Sencer", "Ferda Hanım", "Hatice Hanım", "Hilal Hanım", "Sibel Hanım", "Zehra Çelik", "Zehra Koç", "Bilinmiyor"];
+  const DEMO_TYPES = ["Çağrı Merkezi", "Sosyal Medya", "Havuz", "WhatsApp", "Owner", "Kullanım"];
+  const IZMIR_ILCELERI = ["Aliağa", "Balçova", "Bayındır", "Bayraklı", "Bergama", "Beydağ", "Bornova", "Buca", "Çeşme", "Çiğli", "Dikili", "Foça", "Gaziemir", "Güzelbahçe", "Karabağlar", "Karaburun", "Karşıyaka", "Kemalpaşa", "Kınık", "Kiraz", "Konak", "Menderes", "Menemen", "Narlıdere", "Ödemiş", "Seferihisar", "Selçuk", "Tire", "Torbalı", "Urla"];
+  const DURUM_LIST = ["Yapıldı", "Yapılmadı", "Ertelendi", "İptal Edildi"];
+
+  const DEALER_COLOR_CLASS = {
+    "Hava Kaya": "dealer-mor",
+    "Berkay Sunan": "dealer-mint",
+    "Ahmet Doğan": "dealer-turuncu",
+    "Alperen Kansız": "dealer-sari"
+  };
+
+  const STORAGE_KEY = "rainwater_demo_takip_v1";
+
+  let rows = [];
+  let expandedDates = new Set(); // undated grup ("") her zaman görünür kabul edilir
+
+  function isRowComplete(row){
+    return Boolean(row.tarih && row.saat && row.dealer && row.demobank && row.demoTuru && row.ilce);
+  }
+
+  function compareRows(a, b){
+    const ca = isRowComplete(a);
+    const cb = isRowComplete(b);
+    if(ca !== cb) return ca ? -1 : 1; // tamamlanmamış satırlar her zaman en altta kalır
+    if(!ca && !cb) return 0; // ikisi de tamamlanmadıysa ekleniş sırası korunur
+    const da = a.tarih;
+    const db = b.tarih;
+    if(da !== db) return da < db ? -1 : 1;
+    const ta = a.saat;
+    const tb = b.saat;
+    if(ta !== tb) return ta < tb ? -1 : 1;
+    return 0;
+  }
+
+  function sortRows(){
+    rows.sort(compareRows);
+  }
+
+  function cleanupOldRows(){
+    const cutoff = new Date();
+    cutoff.setHours(0,0,0,0);
+    cutoff.setDate(cutoff.getDate() - 7);
+    const before = rows.length;
+    rows = rows.filter(r => {
+      if(!r.tarih) return true;
+      const d = new Date(r.tarih + "T00:00:00");
+      return d >= cutoff;
+    });
+    return rows.length !== before;
+  }
+
+  function loadRows(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      rows = raw ? JSON.parse(raw) : [];
+    }catch(e){
+      rows = [];
+    }
+    if(cleanupOldRows()){
+      saveRows();
+    }
+  }
+
+  function saveRows(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
+  }
+
+  function isoToDisplayDate(iso){
+    if(!iso) return "";
+    const parts = iso.split("-");
+    if(parts.length !== 3) return "";
+    const [y, m, d] = parts;
+    return `${d}.${m}.${y}`;
+  }
+
+  function displayToIsoDate(str){
+    const m = str.trim().match(/^(\d{1,2})[.\/\-](\d{1,2})[.\/\-](\d{4})$/);
+    if(!m) return null;
+    const dd = parseInt(m[1], 10), mm = parseInt(m[2], 10), yyyy = parseInt(m[3], 10);
+    if(mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+    const d = new Date(yyyy, mm - 1, dd);
+    if(d.getFullYear() !== yyyy || d.getMonth() !== mm - 1 || d.getDate() !== dd) return null;
+    return `${String(yyyy).padStart(4,"0")}-${String(mm).padStart(2,"0")}-${String(dd).padStart(2,"0")}`;
+  }
+
+  function normalizeTimeText(str){
+    const m = str.trim().match(/^(\d{1,2}):(\d{2})$/);
+    if(!m) return null;
+    const hh = parseInt(m[1], 10), mm = parseInt(m[2], 10);
+    if(hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
+    return `${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}`;
+  }
+
+  function buildOptions(list, selected){
+    let opts = `<option value="" ${!selected ? "selected" : ""}>Seçiniz</option>`;
+    opts += list.map(item =>
+      `<option value="${item}" ${item === selected ? "selected" : ""}>${item}</option>`
+    ).join("");
+    return opts;
+  }
+
+  function formatDateLabel(dateStr){
+    const d = new Date(dateStr + "T00:00:00");
+    if(isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric", weekday: "long" });
+  }
+
+  function groupRows(){
+    const groups = [];
+    rows.forEach(r => {
+      const key = isRowComplete(r) ? r.tarih : "";
+      const last = groups[groups.length - 1];
+      if(!last || last.key !== key){
+        groups.push({ key, list: [r] });
+      } else {
+        last.list.push(r);
+      }
+    });
+    return groups;
+  }
+
+  function rowLineHtml(row, siraNo){
+    const colorClass = DEALER_COLOR_CLASS[row.dealer] || "";
+    return `
+      <div class="col-row row-line ${colorClass}" data-id="${row.id}">
+        <span class="sira-value">${siraNo}</span>
+        <div class="field-picker">
+          <input type="text" data-field="tarih" data-kind="text" value="${isoToDisplayDate(row.tarih)}" placeholder="GG.AA.YYYY" inputmode="numeric">
+          <button type="button" class="picker-btn" data-field="tarih" title="Takvimden seç">📅</button>
+          <input type="date" class="native-hidden" data-field="tarih" data-kind="native" value="${row.tarih || ""}" tabindex="-1" aria-hidden="true">
+        </div>
+        <div class="field-picker">
+          <input type="text" data-field="saat" data-kind="text" value="${row.saat || ""}" placeholder="SS:DD" inputmode="numeric">
+          <button type="button" class="picker-btn" data-field="saat" title="Saatten seç">🕐</button>
+          <input type="time" class="native-hidden" data-field="saat" data-kind="native" value="${row.saat || ""}" tabindex="-1" aria-hidden="true">
+        </div>
+        <select data-field="dealer">${buildOptions(DEALERS, row.dealer)}</select>
+        <select data-field="demobank">${buildOptions(DEMOBANK, row.demobank)}</select>
+        <select data-field="demoTuru">${buildOptions(DEMO_TYPES, row.demoTuru)}</select>
+        <select data-field="ilce">${buildOptions(IZMIR_ILCELERI, row.ilce)}</select>
+        <select data-field="durum">${buildOptions(DURUM_LIST, row.durum)}</select>
+        <button class="del-btn" title="Satırı sil">✕</button>
+      </div>`;
+  }
+
+  function render(){
+    cleanupOldRows();
+
+    const groupsWrap = document.getElementById("groupsWrap");
+    const emptyState = document.getElementById("emptyState");
+    const rowCountEl = document.getElementById("rowCount");
+    const demoGrid = document.getElementById("demoGrid");
+
+    rowCountEl.textContent = rows.length + " kayıt";
+
+    if(rows.length === 0){
+      groupsWrap.innerHTML = "";
+      demoGrid.style.display = "none";
+      emptyState.style.display = "block";
+      return;
+    }
+    demoGrid.style.display = "";
+    emptyState.style.display = "none";
+
+    const groups = groupRows();
+    let counter = 0;
+    let html = "";
+
+    groups.forEach(g => {
+      const startNo = counter + 1;
+      counter += g.list.length;
+
+      if(g.key === ""){
+        html += `
+          <div class="day-group undated">
+            <div class="day-header">
+              <span class="chevron">•</span>
+              <span class="day-label">Doldurulmamış kayıtlar</span>
+              <span class="day-count">${g.list.length} demo</span>
+            </div>
+            <div class="day-body">
+              ${g.list.map((row, i) => rowLineHtml(row, startNo + i)).join("")}
+            </div>
+          </div>`;
+      } else {
+        const expanded = expandedDates.has(g.key);
+        html += `
+          <div class="day-group">
+            <button class="day-header ${expanded ? "expanded" : ""}" data-daykey="${g.key}">
+              <span class="chevron">▸</span>
+              <span class="day-label">${formatDateLabel(g.key)}</span>
+              <span class="day-count">${g.list.length} demo</span>
+            </button>
+            <div class="day-body" style="display:${expanded ? "block" : "none"};">
+              ${g.list.map((row, i) => rowLineHtml(row, startNo + i)).join("")}
+            </div>
+          </div>`;
+      }
+    });
+
+    groupsWrap.innerHTML = html;
+  }
+
+  function addRow(){
+    rows.push({
+      id: Date.now() + Math.random().toString(16).slice(2),
+      tarih: "",
+      saat: "",
+      dealer: "",
+      demobank: "",
+      demoTuru: "",
+      ilce: "",
+      durum: ""
+    });
+    sortRows();
+    saveRows();
+    render();
+  }
+
+  function deleteRow(id){
+    rows = rows.filter(r => r.id !== id);
+    saveRows();
+    render();
+  }
+
+  function exportToExcel(){
+    if(rows.length === 0) return;
+    const sorted = rows.slice().sort(compareRows);
+    const data = sorted.map((row, idx) => ({
+      "Sıra": idx + 1,
+      "Tarih": row.tarih || "",
+      "Saat": row.saat || "",
+      "Dealer": row.dealer || "",
+      "Demobank": row.demobank || "",
+      "Demo Türü": row.demoTuru || "",
+      "İlçe": row.ilce || "",
+      "Durum": row.durum || ""
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    ws["!cols"] = [{wch:6},{wch:12},{wch:8},{wch:18},{wch:18},{wch:14},{wch:14},{wch:14}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Demo Takip");
+    const today = new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb, `rainwater-demo-takip-${today}.xlsx`);
+  }
+
+  document.getElementById("addRowBtn").addEventListener("click", addRow);
+  document.getElementById("exportBtn").addEventListener("click", exportToExcel);
+
+  document.getElementById("groupsWrap").addEventListener("change", (e) => {
+    const line = e.target.closest(".row-line");
+    if(!line) return;
+    const id = line.dataset.id;
+    const field = e.target.dataset.field;
+    const kind = e.target.dataset.kind;
+    if(!field) return;
+
+    const row = rows.find(r => r.id === id);
+    if(!row) return;
+
+    if(field === "tarih"){
+      if(kind === "text"){
+        const raw = e.target.value.trim();
+        if(raw === ""){
+          row.tarih = "";
+        } else {
+          const iso = displayToIsoDate(raw);
+          if(iso) row.tarih = iso;
+          // geçersiz metin girildiyse satır render'da eski değere döner
+        }
+      } else if(kind === "native"){
+        row.tarih = e.target.value;
+      }
+    } else if(field === "saat"){
+      if(kind === "text"){
+        const raw = e.target.value.trim();
+        if(raw === ""){
+          row.saat = "";
+        } else {
+          const norm = normalizeTimeText(raw);
+          if(norm) row.saat = norm;
+        }
+      } else if(kind === "native"){
+        row.saat = e.target.value;
+      }
+    } else {
+      row[field] = e.target.value;
+    }
+
+    sortRows();
+
+    // Satır tamamlanıp bir tarihe yerleştiyse, ait olduğu çekmece açık kalsın
+    if(isRowComplete(row)){
+      expandedDates.add(row.tarih);
+    }
+
+    saveRows();
+    render();
+  });
+
+  document.getElementById("groupsWrap").addEventListener("click", (e) => {
+    if(e.target.classList.contains("del-btn")){
+      const line = e.target.closest(".row-line");
+      if(line) deleteRow(line.dataset.id);
+      return;
+    }
+    if(e.target.classList.contains("picker-btn")){
+      const wrap = e.target.closest(".field-picker");
+      const native = wrap ? wrap.querySelector('input.native-hidden') : null;
+      if(native){
+        try{
+          if(typeof native.showPicker === "function"){
+            native.showPicker();
+          } else {
+            native.focus();
+            native.click();
+          }
+        }catch(err){
+          native.focus();
+        }
+      }
+      return;
+    }
+    const header = e.target.closest(".day-header[data-daykey]");
+    if(header){
+      const key = header.dataset.daykey;
+      if(expandedDates.has(key)){
+        expandedDates.delete(key);
+      } else {
+        expandedDates.add(key);
+      }
+      render();
+    }
+  });
+
+  loadRows();
+  sortRows();
+  render();
+</script>
+
+</body>
+</html>
