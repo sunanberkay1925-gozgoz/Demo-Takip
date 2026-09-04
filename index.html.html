@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rainwater Demo Takip Paneli</title>
+<style>
+  :root{
+    --deep: #063a4d;
+    --deep2: #0a4f68;
+    --mid: #12839e;
+    --bright: #1fb6c9;
+    --foam: #e7f6f8;
+    --paper: #ffffff;
+    --line: #d3e9ed;
+    --text: #0d2b33;
+    --muted: #5c7d84;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: linear-gradient(180deg, var(--deep) 0%, var(--deep2) 210px, var(--foam) 210px, var(--foam) 100%);
+    color: var(--text);
+    line-height: 1.5;
+    min-height:100vh;
+    padding-bottom: 60px;
+  }
+  header{
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 34px 24px 30px;
+    display:flex;
+    align-items:flex-start;
+    flex-wrap: wrap;
+    gap:16px;
+  }
+  .drop-mark{ width:40px;height:40px;flex:none; }
+  header .titles{ min-width: 0; }
+  header h1{
+    color:#fff;
+    font-size: 1.5rem;
+    line-height: 1.35;
+    font-weight: 650;
+    margin:0;
+    letter-spacing: 0.2px;
+  }
+  header p{
+    color: #bfe6ee;
+    line-height: 1.5;
+    margin: 6px 0 0;
+    font-size: 0.9rem;
+  }
+  main{
+    max-width: 1200px;
+    margin: -20px auto 0;
+    padding: 0 24px;
+    position: relative;
+  }
+  .tabs{
+    display:flex;
+    gap: 4px;
+    margin-bottom: 14px;
+  }
+  .tab-btn{
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px 8px 0 0;
+    font-size: 0.92rem;
+    font-weight: 600;
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .tab-btn.active{
+    background: var(--paper);
+    color: var(--deep);
+  }
+  .tab-btn:hover{
+    background: rgba(255,255,255,0.3);
+  }
+  .tab-btn.active:hover{
+    background: var(--paper);
+  }
+  .panel{
+    background: var(--paper);
+    border-radius: 14px;
+    box-shadow: 0 12px 32px rgba(6,58,77,0.14);
+    overflow: hidden;
+    border: 1px solid var(--line);
+  }
+  .toolbar{
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .toolbar .count{ color: var(--muted); font-size: 0.88rem; white-space: nowrap; }
+  .toolbar .actions{ display:flex; gap: 10px; flex-wrap: wrap; }
+  button{ font-family: inherit; cursor:pointer; border:none; white-space: nowrap; }
+  .btn-add, .btn-export{
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    transition: background 0.15s ease;
+  }
+  .btn-add{ background: var(--mid); color:#fff; }
+  .btn-add:hover{ background: var(--deep2); }
+  .btn-export{ background: var(--foam); color: var(--deep); border: 1px solid var(--line); }
+  .btn-export:hover{ background: #d7f0f3; }
+
+  .grid-scroll{ overflow-x: auto; }
+  .demo-grid{ min-width: 1060px; }
+  .col-row{
+    display:grid;
+    grid-template-columns: 46px 138px 104px 1.05fr 1.15fr 0.95fr 0.95fr 128px 36px;
+    align-items:center;
+    column-gap: 6px;
+  }
+  .grid-header-row{
+    background: var(--foam);
+    color: var(--deep);
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 12px 14px;
+    line-height: 1.4;
+    border-bottom: 2px solid var(--line);
+  }
+  .grid-header-row span{ padding-right: 8px; white-space: nowrap; overflow:hidden; text-overflow: ellipsis; }
+
+  .day-group + .day-group{ border-top: 1px solid var(--line); }
+  .day-group.undated{ border-top: 1px dashed var(--line); background: #fbfefe; }
+
+  .day-header{
+    width: 100%;
+    display:flex;
+    align-items:center;
+    gap: 10px;
+    padding: 13px 16px;
+    background: var(--paper);
+    text-align:left;
+    font-size: 0.92rem;
+    color: var(--deep);
+    transition: background 0.15s ease;
+  }
+  .day-header:hover{ background: var(--foam); }
+  .day-header .chevron{
+    display:inline-block;
+    width: 16px;
+    color: var(--mid);
+    font-size: 0.8rem;
+    transition: transform 0.15s ease;
+    flex: none;
+  }
+  .day-header.expanded .chevron{ transform: rotate(90deg); }
+  .day-header .day-label{
+    font-weight: 700;
+    line-height: 1.4;
+  }
+  .day-header .day-count{
+    margin-left: auto;
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-weight: 500;
+    white-space: nowrap;
+    padding-left: 12px;
+  }
+  .undated .day-header{ cursor: default; color: var(--muted); font-style: italic; }
+  .undated .day-header .day-count{ font-style: normal; }
+
+  .day-body{ padding: 6px 0 4px; }
+  .row-line{
+    padding: 8px 12px;
+    line-height: 1.4;
+    background: transparent;
+    transition: box-shadow 0.15s ease;
+  }
+  .row-line:hover{ box-shadow: inset 0 0 0 999px rgba(255,255,255,0.4); }
+
+  .dealer-mor{ background: rgba(147, 112, 219, 0.13); backdrop-filter: blur(2px) saturate(120%); }
+  .dealer-mint{ background: rgba(58, 196, 158, 0.14); backdrop-filter: blur(2px) saturate(120%); }
+  .dealer-turuncu{ background: rgba(255, 141, 66, 0.14); backdrop-filter: blur(2px) saturate(120%); }
+  .dealer-sari{ background: rgba(255, 199, 46, 0.17); backdrop-filter: blur(2px) saturate(120%); }
+
+  .sira-value{ display:block; text-align:center; font-weight: 700; color: var(--mid); }
+
+  select, input[type="date"], input[type="time"], input[type="text"]{
+    width: 100%;
+    font-family: inherit;
+    font-size: 0.86rem;
+    color: var(--text);
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 7px 8px;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  select{
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%23127f96'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 9px center;
+    padding-right: 24px;
+    text-overflow: ellipsis;
+  }
+  select:focus, input:focus{ outline: none; border-color: var(--mid); box-shadow: 0 0 0 3px rgba(31,182,201,0.18); }
+
+  .field-picker{
+    position: relative;
+    display:flex;
+    align-items:center;
+    gap: 3px;
+  }
+  .field-picker input[type="text"]{ flex: 1; min-width: 0; }
+  .icon-picker-wrap{
+    position: relative;
+    width: 26px;
+    height: 26px;
+    flex: none;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .icon-picker-wrap input[type="date"], .icon-picker-wrap input[type="time"]{
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 1;
+  }
+  .icon-picker-wrap .icon-visual{
+    position: absolute;
+    inset: 0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: var(--foam);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font-size: 0.78rem;
+    color: var(--mid);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .searchable-select{
+    position: relative;
+    width: 100%;
+  }
+  .searchable-select > summary{
+    list-style: none;
+    display:block;
+    width: 100%;
+    font-family: inherit;
+    font-size: 0.86rem;
+    color: var(--text);
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    padding: 7px 8px;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .searchable-select > summary::-webkit-details-marker{ display:none; }
+  .searchable-select > summary:hover{ border-color: var(--mid); }
+  .searchable-select > summary:focus{ outline: none; border-color: var(--mid); box-shadow: 0 0 0 3px rgba(31,182,201,0.18); }
+  .searchable-select .ss-panel{
+    position: fixed;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    box-shadow: 0 10px 28px rgba(6,58,77,0.22);
+    padding: 8px;
+    display:flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 260px;
+    width: 220px;
+    z-index: 9999;
+  }
+  .searchable-select .ss-filter{
+    padding: 6px 8px;
+    font-size: 0.84rem;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font-family: inherit;
+  }
+  .searchable-select .ss-filter:focus{ outline: none; border-color: var(--mid); box-shadow: 0 0 0 2px rgba(31,182,201,0.15); }
+  .searchable-select .ss-options{
+    flex: 1;
+    overflow-y: auto;
+    font-size: 0.86rem;
+  }
+  .searchable-select .ss-option{
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .searchable-select .ss-option:hover{ background: var(--foam); }
+  .searchable-select .ss-option.empty{ color: var(--muted); font-style: italic; cursor:default; }
+  .searchable-select .ss-option.empty:hover{ background: transparent; }
+
+  .saat-popover > summary{ list-style: none; cursor:pointer; }
+  .saat-popover > summary::-webkit-details-marker{ display:none; }
+  .saat-summary-btn{
+    width: 26px; height: 26px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background: var(--foam);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font-size: 0.78rem;
+    color: var(--mid);
+    cursor: pointer;
+  }
+  .saat-popover .popover-panel{
+    position: fixed;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    box-shadow: 0 10px 26px rgba(6,58,77,0.22);
+    padding: 10px;
+    display:flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 200px;
+    z-index: 9999;
+  }
+  .popover-time-picker{
+    position: relative;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    height: 34px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--foam);
+    padding: 0 10px;
+  }
+  .popover-time-picker input[type="time"]{
+    position:absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    margin: 0;
+    padding: 0;
+    border: none;
+    cursor: pointer;
+    z-index: 1;
+  }
+  .popover-time-label{
+    position: relative;
+    pointer-events: none;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--deep);
+    z-index: 0;
+  }
+  .flexible-time-checkbox{ width: 17px; height: 17px; cursor: pointer; }
+  .flexible-time-label{
+    display:flex;
+    align-items:center;
+    gap: 7px;
+    cursor: pointer;
+    font-size: 0.84rem;
+    color: var(--text);
+  }
+
+  .del-btn{
+    background: transparent;
+    color: #b23b4a;
+    width: 30px; height: 30px;
+    border-radius: 7px;
+    font-size: 1rem;
+    line-height: 1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition: background 0.15s ease;
+  }
+  .del-btn:hover{ background: #fbe7e9; }
+
+  /* İstatistikler Bölümü */
+  .stats-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px;
+    padding: 20px;
+  }
+  .stat-card{
+    background: var(--foam);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .stat-card h3{
+    color: var(--deep);
+    font-size: 0.92rem;
+    font-weight: 700;
+    margin: 0 0 12px;
+  }
+  .stat-card .stat-list{
+    display:flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 0.86rem;
+  }
+  .stat-item{
+    display:flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 8px;
+    background: var(--paper);
+    border-radius: 6px;
+  }
+  .stat-name{ font-weight: 600; color: var(--mid); }
+  .stat-count{ color: var(--deep); font-weight: 700; font-size: 1rem; }
+  .curiosity-box{
+    background: linear-gradient(135deg, rgba(31,182,201,0.1) 0%, rgba(147,112,219,0.1) 100%);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px;
+    margin: 20px;
+    font-style: italic;
+    color: var(--deep);
+    font-size: 0.92rem;
+    line-height: 1.6;
+  }
+
+  .empty-state{ padding: 50px 20px; text-align:center; color: var(--muted); }
+  .empty-state .drop-mark{ margin: 0 auto 10px; opacity:0.5; }
+
+  .modal-overlay{
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(6, 58, 77, 0.5);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index: 999;
+  }
+  .modal-box{
+    background: var(--paper);
+    border-radius: 12px;
+    padding: 24px;
+    max-width: 420px;
+    width: 90%;
+    box-shadow: 0 20px 48px rgba(6, 58, 77, 0.2);
+  }
+  .modal-title{
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--deep);
+    margin: 0 0 16px;
+    line-height: 1.4;
+  }
+  .modal-field{ margin-bottom: 14px; }
+  .modal-field label{
+    display:block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--deep);
+    margin-bottom: 4px;
+  }
+  .modal-field input[type="date"]{ width: 100%; }
+  .modal-actions{
+    display:flex;
+    gap: 10px;
+    margin-top: 20px;
+    justify-content: flex-end;
+  }
+  .modal-btn{
+    padding: 8px 16px;
+    border-radius: 7px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border: 1px solid var(--line);
+    background: var(--foam);
+    color: var(--deep);
+    cursor:pointer;
+    transition: background 0.15s ease;
+  }
+  .modal-btn.primary{ background: var(--mid); color:#fff; border-color: var(--mid); }
+  .modal-btn:hover{ background: var(--deep2); }
+
+  footer{
+    max-width:1200px;
+    margin: 14px auto 0;
+    padding: 0 24px;
+    color: var(--muted);
+    font-size: 0.78rem;
+    line-height: 1.5;
+  }
+
+  @media (max-width: 640px){
+    header{ padding: 26px 16px 22px; }
+    main{ padding: 0 12px; }
+    .panel{ border-radius: 10px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <svg class="drop-mark" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+    <path d="M20 4C20 4 8 20 8 27a12 12 0 0 0 24 0C32 20 20 4 20 4z" fill="#1fb6c9"/>
+    <path d="M20 4C20 4 8 20 8 27a12 12 0 0 0 24 0C32 20 20 4 20 4z" fill="url(#g)" opacity="0.5"/>
+    <defs>
+      <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#eafcff"/>
+        <stop offset="1" stop-color="#0a4f68"/>
+      </linearGradient>
+    </defs>
+  </svg>
+  <div class="titles">
+    <h1>Rainwater Demo Takip Paneli</h1>
+    <p>Demo kayıtlarını satır satır ekleyip takip edin</p>
+  </div>
+</header>
+
+<main>
+  <div class="tabs" id="tabs">
+    <button class="tab-btn active" data-tab="kayitlar">Kayıtlar</button>
+    <button class="tab-btn" data-tab="istatistikler">İstatistikler</button>
+  </div>
+
+  <div id="kayitlar-tab" class="tab-content">
+    <div class="panel">
+      <div class="toolbar">
+        <span class="count" id="rowCount">0 kayıt</span>
+        <div class="actions">
+          <button class="btn-export" id="exportBtn">⬇ Excel'e Aktar</button>
+          <button class="btn-add" id="addRowBtn">+ Satır Ekle</button>
+        </div>
+      </div>
+      <div class="grid-scroll">
+        <div class="demo-grid" id="demoGrid">
+          <div class="col-row grid-header-row">
+            <span>Sıra</span><span>Tarih</span><span>Saat</span><span>Dealer</span><span>Demobank</span><span>Demo Türü</span><span>İlçe</span><span>Şoför</span><span></span>
+          </div>
+          <div id="groupsWrap"></div>
+        </div>
+      </div>
+      <div class="empty-state" id="emptyState" style="display:none;">
+        <svg class="drop-mark" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+          <path d="M20 4C20 4 8 20 8 27a12 12 0 0 0 24 0C32 20 20 4 20 4z" fill="#12839e"/>
+        </svg>
+        Henüz kayıt yok. Başlamak için "Satır Ekle" düğmesine basın.
+      </div>
+    </div>
+  </div>
+
+  <div id="istatistikler-tab" class="tab-content" style="display:none;">
+    <div class="panel">
+      <div id="statsContent"></div>
+    </div>
+  </div>
+
+  <div id="exportModal" style="display:none;">
+    <div class="modal-overlay">
+      <div class="modal-box">
+        <h2 class="modal-title">Excel'e Aktar</h2>
+        <div class="modal-field">
+          <label>Başlangıç Tarihi (isteğe bağlı)</label>
+          <input type="date" id="exportDateFrom">
+        </div>
+        <div class="modal-field">
+          <label>Bitiş Tarihi (isteğe bağlı)</label>
+          <input type="date" id="exportDateTo">
+        </div>
+        <div class="modal-actions">
+          <button class="modal-btn" id="exportCancel">İptal</button>
+          <button class="modal-btn primary" id="exportConfirm">Excel'e Aktar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer>Kayıtlar bu tarayıcıda otomatik olarak saklanır. Dealer, Demobank, İlçe ve Şoför alanlarına yazarak arayabilirsiniz. Sıralama; önce tarihe, tarihler eşitse saate göre yapılır. Kayıt tarihinin üzerinden 1 hafta geçen günler otomatik olarak temizlenir.</footer>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+  const DEALERS = ["Hava Kaya", "Berkay Sunan", "Ahmet Doğan", "Alperen Kansız", "Seçim Bekleniyor"];
+  const DEMOBANK = ["Aynur Hanım", "Beyzanur Hanım", "Beyzanur Sencer", "Ferda Hanım", "Hatice Hanım", "Hilal Hanım", "Sibel Hanım", "Zehra Çelik", "Zehra Koç Ada", "Bilinmiyor"];
+  const DEMO_TYPES = ["Çağrı Merkezi", "Sosyal Medya", "Havuz", "WhatsApp", "Owner", "Kullanım", "Web"];
+  const IZMIR_ILCELERI = ["Aliağa", "Balçova", "Bayındır", "Bayraklı", "Bergama", "Beydağ", "Bornova", "Buca", "Çeşme", "Çiğli", "Dikili", "Foça", "Gaziemir", "Güzelbahçe", "Karabağlar", "Karaburun", "Karşıyaka", "Kemalpaşa", "Kınık", "Kiraz", "Konak", "Menderes", "Menemen", "Narlıdere", "Ödemiş", "Seferihisar", "Selçuk", "Tire", "Torbalı", "Urla"];
+  const SOFOR_LIST = ["Mahir Doğan", "Cumhur Tanrıyakul", "Şoförsüz"];
+
+  const SEARCHABLE_FIELDS = {
+    dealer: DEALERS,
+    demobank: DEMOBANK,
+    ilce: IZMIR_ILCELERI,
+    sofor: SOFOR_LIST
+  };
+
+  const DEALER_COLOR_CLASS = {
+    "Hava Kaya": "dealer-mor",
+    "Berkay Sunan": "dealer-mint",
+    "Ahmet Doğan": "dealer-turuncu",
+    "Alperen Kansız": "dealer-sari"
+  };
+
+  const CURIOSITIES = [
+    "Bugün en uzun demo Konak'ta yapıldı!",
+    "Şoförsüz demoların hızı daha fazla oluyor.",
+    "Zehra Çelik bu hafta en çok demo almıştır.",
+    "Mahir Doğan pazardan beri 15 demoya gitti.",
+    "En popüler demo türü Çağrı Merkezi'dir.",
+    "Balçova'da bu ay en az demo alınmıştır.",
+    "Esnek Saat demoları %30 daha uzun sürüyor.",
+    "Seçim Bekleniyor bu ay hiç demo almadı.",
+    "Beyzanur Hanım bu ayın yıldız demobank'ı!",
+    "Web demoları şoförlü gitmek zorunludur.",
+    "En kalabalık demo grubu Karşıyaka'da oluştu.",
+    "Cumhur Tanrıyakul en yoğun gün pazarlar.",
+    "İlçe başına ortalama 8 demo alınıyor."
+  ];
+
+  const STORAGE_KEY = "rainwater_demo_takip_v1";
+
+  let rows = [];
+  let expandedDates = new Set();
+
+  function isRowComplete(row){
+    return Boolean(row.tarih && row.saat && row.dealer && row.demobank && row.demoTuru && row.ilce);
+  }
+
+  function compareRows(a, b){
+    const ca = isRowComplete(a);
+    const cb = isRowComplete(b);
+    if(ca !== cb) return ca ? -1 : 1;
+    if(!ca && !cb) return 0;
+    const da = a.tarih;
+    const db = b.tarih;
+    if(da !== db) return da < db ? -1 : 1;
+    const ta = a.saat;
+    const tb = b.saat;
+    if(ta !== tb) return ta < tb ? -1 : 1;
+    return 0;
+  }
+
+  function sortRows(){
+    rows.sort(compareRows);
+  }
+
+  function cleanupOldRows(){
+    const cutoff = new Date();
+    cutoff.setHours(0,0,0,0);
+    cutoff.setDate(cutoff.getDate() - 7);
+    const before = rows.length;
+    rows = rows.filter(r => {
+      if(!r.tarih) return true;
+      const d = new Date(r.tarih + "T00:00:00");
+      return d >= cutoff;
+    });
+    return rows.length !== before;
+  }
+
+  function loadRows(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      rows = raw ? JSON.parse(raw) : [];
+    }catch(e){
+      rows = [];
+    }
+    if(cleanupOldRows()){
+      saveRows();
+    }
+  }
+
+  function saveRows(){
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(rows));
+  }
+
+  function isoToDisplayDate(iso){
+    if(!iso) return "";
+    const parts = iso.split("-");
+    if(parts.length !== 3) return "";
+    const [y, m, d] = parts;
+    return `${d}.${m}.${y}`;
+  }
+
+  function displayToIsoDate(str){
+    const m = str.trim().match(/^(\d{1,2})[.\/\-](\d{1,2})[.\/\-](\d{4})$/);
+    if(!m) return null;
+    const dd = parseInt(m[1], 10), mm = parseInt(m[2], 10), yyyy = parseInt(m[3], 10);
+    if(mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+    const d = new Date(yyyy, mm - 1, dd);
+    if(d.getFullYear() !== yyyy || d.getMonth() !== mm - 1 || d.getDate() !== dd) return null;
+    return `${String(yyyy).padStart(4,"0")}-${String(mm).padStart(2,"0")}-${String(dd).padStart(2,"0")}`;
+  }
+
+  function normalizeTimeText(str){
+    const m = str.trim().match(/^(\d{1,2}):(\d{2})$/);
+    if(!m) return null;
+    const hh = parseInt(m[1], 10), mm = parseInt(m[2], 10);
+    if(hh < 0 || hh > 23 || mm < 0 || mm > 59) return null;
+    return `${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}`;
+  }
+
+  function buildOptions(list, selected){
+    let opts = `<option value="" ${!selected ? "selected" : ""}>Seçiniz</option>`;
+    opts += list.map(item =>
+      `<option value="${item}" ${item === selected ? "selected" : ""}>${item}</option>`
+    ).join("");
+    return opts;
+  }
+
+  function formatDateLabel(dateStr){
+    const d = new Date(dateStr + "T00:00:00");
+    if(isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric", weekday: "long" });
+  }
+
+  function groupRows(){
+    const groups = [];
+    rows.forEach(r => {
+      const key = isRowComplete(r) ? r.tarih : "";
+      const last = groups[groups.length - 1];
+      if(!last || last.key !== key){
+        groups.push({ key, list: [r] });
+      } else {
+        last.list.push(r);
+      }
+    });
+    return groups;
+  }
+
+  function searchableSelectHtml(field, value, list){
+    const displayValue = value || "Seçiniz";
+    const optionsHtml = list.map(item => `<div class="ss-option" data-value="${item}">${item}</div>`).join("");
+    return `
+      <details class="searchable-select" data-field="${field}">
+        <summary>${displayValue}</summary>
+        <div class="ss-panel">
+          <input type="text" class="ss-filter" placeholder="Ara...">
+          <div class="ss-options">${optionsHtml}</div>
+        </div>
+      </details>`;
+  }
+
+  function rowLineHtml(row, siraNo){
+    const colorClass = DEALER_COLOR_CLASS[row.dealer] || "";
+    const isFlexibleTime = row.saat === "Esnek Saat";
+    return `
+      <div class="col-row row-line ${colorClass}" data-id="${row.id}">
+        <span class="sira-value">${siraNo}</span>
+        <div class="field-picker">
+          <input type="text" data-field="tarih" data-kind="text" value="${isoToDisplayDate(row.tarih)}" placeholder="GG.AA.YYYY" inputmode="numeric">
+          <div class="icon-picker-wrap">
+            <input type="date" data-field="tarih" data-kind="native" value="${row.tarih || ""}">
+            <div class="icon-visual">📅</div>
+          </div>
+        </div>
+        <div class="field-picker">
+          <input type="text" data-field="saat" data-kind="text" value="${isFlexibleTime ? "Esnek Saat" : (row.saat || "")}" placeholder="SS:DD" inputmode="numeric" ${isFlexibleTime ? "disabled" : ""}>
+          <details class="saat-popover">
+            <summary class="saat-summary-btn" title="Saat seçenekleri">🕐</summary>
+            <div class="popover-panel">
+              <div class="popover-time-picker">
+                <input type="time" data-field="saat" data-kind="native" value="${isFlexibleTime ? "" : (row.saat || "")}">
+                <span class="popover-time-label">⏱ Saatten Seç</span>
+              </div>
+              <label class="flexible-time-label">
+                <input type="checkbox" class="flexible-time-checkbox" data-field="saat" ${isFlexibleTime ? "checked" : ""}>
+                <span>Esnek Saat</span>
+              </label>
+            </div>
+          </details>
+        </div>
+        ${searchableSelectHtml("dealer", row.dealer, DEALERS)}
+        ${searchableSelectHtml("demobank", row.demobank, DEMOBANK)}
+        <select data-field="demoTuru">${buildOptions(DEMO_TYPES, row.demoTuru)}</select>
+        ${searchableSelectHtml("ilce", row.ilce, IZMIR_ILCELERI)}
+        ${searchableSelectHtml("sofor", row.sofor, SOFOR_LIST)}
+        <button class="del-btn" title="Satırı sil">✕</button>
+      </div>`;
+  }
+
+  function renderTabContent(){
+    const activeTab = document.querySelector(".tab-btn.active").dataset.tab;
+    document.querySelectorAll(".tab-content").forEach(el => el.style.display = "none");
+    document.getElementById(activeTab + "-tab").style.display = "";
+    
+    if(activeTab === "istatistikler"){
+      renderStats();
+    } else {
+      render();
+    }
+  }
+
+  function renderStats(){
+    const completeRows = rows.filter(r => isRowComplete(r));
+    
+    const dealerStats = {};
+    const demobankStats = {};
+    const ilceStats = new Set();
+    const soforStats = {};
+
+    completeRows.forEach(r => {
+      dealerStats[r.dealer] = (dealerStats[r.dealer] || 0) + 1;
+      demobankStats[r.demobank] = (demobankStats[r.demobank] || 0) + 1;
+      ilceStats.add(r.ilce);
+      soforStats[r.sofor] = (soforStats[r.sofor] || 0) + 1;
+    });
+
+    const sortedDealers = Object.entries(dealerStats).sort((a, b) => b[1] - a[1]);
+    const sortedDemobanks = Object.entries(demobankStats).sort((a, b) => b[1] - a[1]);
+    const sortedSoforlar = Object.entries(soforStats).sort((a, b) => b[1] - a[1]);
+
+    let html = '<div class="stats-grid">';
+    
+    html += '<div class="stat-card"><h3>Dealer Başına Demo</h3><div class="stat-list">';
+    if(sortedDealers.length === 0){
+      html += '<div class="stat-item"><span class="stat-name">Veri yok</span></div>';
+    } else {
+      sortedDealers.forEach(([dealer, count]) => {
+        html += `<div class="stat-item"><span class="stat-name">${dealer}</span><span class="stat-count">${count}</span></div>`;
+      });
+    }
+    html += '</div></div>';
+
+    html += '<div class="stat-card"><h3>Demobank Başına Demo</h3><div class="stat-list">';
+    if(sortedDemobanks.length === 0){
+      html += '<div class="stat-item"><span class="stat-name">Veri yok</span></div>';
+    } else {
+      sortedDemobanks.forEach(([demobank, count]) => {
+        html += `<div class="stat-item"><span class="stat-name">${demobank}</span><span class="stat-count">${count}</span></div>`;
+      });
+    }
+    html += '</div></div>';
+
+    html += '<div class="stat-card"><h3>Şoför Başına Demo</h3><div class="stat-list">';
+    if(sortedSoforlar.length === 0){
+      html += '<div class="stat-item"><span class="stat-name">Veri yok</span></div>';
+    } else {
+      sortedSoforlar.forEach(([sofor, count]) => {
+        html += `<div class="stat-item"><span class="stat-name">${sofor}</span><span class="stat-count">${count}</span></div>`;
+      });
+    }
+    html += '</div></div>';
+
+    html += '<div class="stat-card"><h3>Demo Alınan İlçeler</h3><div class="stat-list">';
+    if(ilceStats.size === 0){
+      html += '<div class="stat-item"><span class="stat-name">Veri yok</span></div>';
+    } else {
+      Array.from(ilceStats).sort().forEach(ilce => {
+        html += `<div class="stat-item"><span class="stat-name">${ilce}</span></div>`;
+      });
+    }
+    html += '</div></div>';
+
+    html += '</div>';
+
+    const curiosity = CURIOSITIES[Math.floor(Math.random() * CURIOSITIES.length)];
+    html += `<div class="curiosity-box">💡 Meraklısına: ${curiosity}</div>`;
+
+    document.getElementById("statsContent").innerHTML = html;
+  }
+
+  function render(){
+    cleanupOldRows();
+
+    const groupsWrap = document.getElementById("groupsWrap");
+    const emptyState = document.getElementById("emptyState");
+    const rowCountEl = document.getElementById("rowCount");
+    const demoGrid = document.getElementById("demoGrid");
+
+    rowCountEl.textContent = rows.length + " kayıt";
+
+    if(rows.length === 0){
+      groupsWrap.innerHTML = "";
+      demoGrid.style.display = "none";
+      emptyState.style.display = "block";
+      return;
+    }
+    demoGrid.style.display = "";
+    emptyState.style.display = "none";
+
+    const groups = groupRows();
+    let counter = 0;
+    let html = "";
+
+    groups.forEach(g => {
+      const startNo = counter + 1;
+      counter += g.list.length;
+
+      if(g.key === ""){
+        html += `
+          <div class="day-group undated">
+            <div class="day-header">
+              <span class="chevron">•</span>
+              <span class="day-label">Doldurulmamış kayıtlar</span>
+              <span class="day-count">${g.list.length} demo</span>
+            </div>
+            <div class="day-body">
+              ${g.list.map((row, i) => rowLineHtml(row, startNo + i)).join("")}
+            </div>
+          </div>`;
+      } else {
+        const expanded = expandedDates.has(g.key);
+        html += `
+          <div class="day-group">
+            <button class="day-header ${expanded ? "expanded" : ""}" data-daykey="${g.key}">
+              <span class="chevron">▸</span>
+              <span class="day-label">${formatDateLabel(g.key)}</span>
+              <span class="day-count">${g.list.length} demo</span>
+            </button>
+            <div class="day-body" style="display:${expanded ? "block" : "none"};">
+              ${g.list.map((row, i) => rowLineHtml(row, startNo + i)).join("")}
+            </div>
+          </div>`;
+      }
+    });
+
+    groupsWrap.innerHTML = html;
+  }
+
+  function addRow(){
+    rows.push({
+      id: Date.now() + Math.random().toString(16).slice(2),
+      tarih: "",
+      saat: "",
+      dealer: "",
+      demobank: "",
+      demoTuru: "",
+      ilce: "",
+      sofor: ""
+    });
+    sortRows();
+    saveRows();
+    render();
+  }
+
+  function deleteRow(id){
+    rows = rows.filter(r => r.id !== id);
+    saveRows();
+    render();
+  }
+
+  function showExportModal(){
+    document.getElementById("exportModal").style.display = "flex";
+  }
+  function closeExportModal(){
+    document.getElementById("exportModal").style.display = "none";
+  }
+
+  function doExport(dateFrom, dateTo){
+    if(rows.length === 0) return;
+    let filtered = rows.slice();
+    if(dateFrom) filtered = filtered.filter(r => !r.tarih || r.tarih >= dateFrom);
+    if(dateTo) filtered = filtered.filter(r => !r.tarih || r.tarih <= dateTo);
+
+    const sorted = filtered.sort(compareRows);
+    const data = sorted.map((row, idx) => ({
+      "Sıra": idx + 1,
+      "Tarih": row.tarih || "",
+      "Saat": row.saat || "",
+      "Dealer": row.dealer || "",
+      "Demobank": row.demobank || "",
+      "Demo Türü": row.demoTuru || "",
+      "İlçe": row.ilce || "",
+      "Şoför": row.sofor || ""
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    ws["!cols"] = [{wch:6},{wch:12},{wch:8},{wch:18},{wch:18},{wch:14},{wch:14},{wch:18}];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Demo Takip");
+    const today = new Date().toISOString().slice(0,10);
+    XLSX.writeFile(wb, `rainwater-demo-takip-${today}.xlsx`);
+    closeExportModal();
+  }
+
+  // Sekmeler
+  document.querySelectorAll(".tab-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      renderTabContent();
+    });
+  });
+
+  // Temel olaylar
+  document.getElementById("addRowBtn").addEventListener("click", addRow);
+  document.getElementById("exportBtn").addEventListener("click", showExportModal);
+  document.getElementById("exportCancel").addEventListener("click", closeExportModal);
+  document.getElementById("exportConfirm").addEventListener("click", () => {
+    const dateFrom = document.getElementById("exportDateFrom").value || null;
+    const dateTo = document.getElementById("exportDateTo").value || null;
+    doExport(dateFrom, dateTo);
+  });
+  document.getElementById("exportModal").addEventListener("click", (e) => {
+    if(e.target.id === "exportModal") closeExportModal();
+  });
+
+  // Popover konumlandırma
+  document.addEventListener("toggle", (e) => {
+    const details = e.target;
+    if(!details.classList || !details.classList.contains("saat-popover")) return;
+    const panel = details.querySelector(".popover-panel");
+    if(!panel) return;
+    if(details.open){
+      const summary = details.querySelector("summary");
+      const rect = summary.getBoundingClientRect();
+      let top = rect.top - 120;
+      if(top < 8) top = rect.bottom + 8;
+      panel.style.left = Math.max(8, rect.left) + "px";
+      panel.style.top = top + "px";
+    }
+  }, true);
+
+  document.addEventListener("toggle", (e) => {
+    const details = e.target;
+    if(!details.classList || !details.classList.contains("saat-popover") || !details.open) return;
+    document.querySelectorAll("details.saat-popover[open]").forEach(d => {
+      if(d !== details) d.removeAttribute("open");
+    });
+  }, true);
+
+  // Aranabilir seçim kutuları
+  document.addEventListener("toggle", (e) => {
+    const details = e.target;
+    if(!details.classList || !details.classList.contains("searchable-select")) return;
+    const panel = details.querySelector(".ss-panel");
+    if(!panel || !details.open) return;
+    const summary = details.querySelector("summary");
+    const rect = summary.getBoundingClientRect();
+    let top = rect.bottom + 4;
+    if(top + 260 > window.innerHeight - 8) top = Math.max(8, rect.top - 260 - 4);
+    panel.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - 8 - 220)) + "px";
+    panel.style.top = top + "px";
+  }, true);
+
+  document.addEventListener("toggle", (e) => {
+    const details = e.target;
+    if(!details.classList || !details.classList.contains("searchable-select") || !details.open) return;
+    document.querySelectorAll("details.searchable-select[open]").forEach(d => {
+      if(d !== details) d.removeAttribute("open");
+    });
+  }, true);
+
+  // Arama
+  document.addEventListener("input", (e) => {
+    const filter = e.target;
+    if(!filter.classList || !filter.classList.contains("ss-filter")) return;
+    const details = filter.closest("details.searchable-select");
+    if(!details) return;
+    const field = details.dataset.field;
+    const list = SEARCHABLE_FIELDS[field] || [];
+    const q = filter.value.trim().toLocaleLowerCase("tr");
+    const options = details.querySelector(".ss-options");
+    const filtered = q === "" ? list : list.filter(item => item.toLocaleLowerCase("tr").includes(q));
+    if(filtered.length === 0){
+      options.innerHTML = '<div class="ss-option empty">Sonuç yok</div>';
+    } else {
+      options.innerHTML = filtered.map(item => `<div class="ss-option" data-value="${item}">${item}</div>`).join("");
+    }
+  });
+
+  document.addEventListener("click", (e) => {
+    const opt = e.target.closest(".ss-option");
+    if(!opt) return;
+    if(opt.classList.contains("empty")) return;
+    const details = opt.closest("details.searchable-select");
+    if(!details) return;
+    const field = details.dataset.field;
+    const value = opt.dataset.value;
+    const line = opt.closest(".row-line");
+    if(!line) return;
+    const id = line.dataset.id;
+    const row = rows.find(r => r.id === id);
+    if(row){
+      row[field] = value;
+      details.querySelector("summary").textContent = value;
+      sortRows();
+      if(isRowComplete(row)) expandedDates.add(row.tarih);
+      saveRows();
+      details.removeAttribute("open");
+      render();
+    }
+  });
+
+  // Temel değişim olayları
+  document.addEventListener("change", (e) => {
+    const line = e.target.closest(".row-line");
+    if(!line) return;
+    const id = line.dataset.id;
+    const field = e.target.dataset.field;
+    const kind = e.target.dataset.kind;
+    if(!field) return;
+
+    const row = rows.find(r => r.id === id);
+    if(!row) return;
+
+    if(field === "tarih"){
+      if(kind === "text"){
+        const raw = e.target.value.trim();
+        if(raw === ""){
+          row.tarih = "";
+        } else {
+          const iso = displayToIsoDate(raw);
+          if(iso) row.tarih = iso;
+        }
+      } else if(kind === "native"){
+        row.tarih = e.target.value;
+      }
+    } else if(field === "saat"){
+      if(e.target.classList.contains("flexible-time-checkbox")){
+        row.saat = e.target.checked ? "Esnek Saat" : "";
+      } else if(kind === "text"){
+        const raw = e.target.value.trim();
+        if(raw === ""){
+          row.saat = "";
+        } else {
+          const norm = normalizeTimeText(raw);
+          if(norm) row.saat = norm;
+        }
+      } else if(kind === "native"){
+        row.saat = e.target.value;
+      }
+    } else {
+      row[field] = e.target.value;
+    }
+
+    sortRows();
+    if(isRowComplete(row)){
+      expandedDates.add(row.tarih);
+    }
+    saveRows();
+    render();
+  });
+
+  document.addEventListener("click", (e) => {
+    if(e.target.classList.contains("del-btn")){
+      const line = e.target.closest(".row-line");
+      if(line) deleteRow(line.dataset.id);
+      return;
+    }
+    const header = e.target.closest(".day-header[data-daykey]");
+    if(header){
+      const key = header.dataset.daykey;
+      if(expandedDates.has(key)){
+        expandedDates.delete(key);
+      } else {
+        expandedDates.add(key);
+      }
+      render();
+    }
+  });
+
+  loadRows();
+  sortRows();
+  render();
+</script>
+
+</body>
+</html>
